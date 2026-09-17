@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "524117961573",
+    "project_id": "les-poulets-de-mamie",
+    "storage_bucket": "les-poulets-de-mamie.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524117961573:android:47a70f44fd6af0a9d88f8c",
+        "android_client_info": {
+          "package_name": "com.isnad.click_collect_kiosk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc1efvakoPswp6IeyCIbAtm3OIG_9dgf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
