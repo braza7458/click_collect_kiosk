@@ -9,6 +9,7 @@ import '../data/orders_repository.dart';
 import '../models/cart_line.dart';
 import '../models/order_mode.dart';
 import '../models/ticket.dart';
+import '../services/loyalty_service.dart';
 
 export '../models/order_mode.dart';
 
@@ -31,12 +32,27 @@ class KioskState extends ChangeNotifier {
 
   List<MenuCategory> menuCategories = [];
 
+  /// Client fidélité identifié pour la commande en cours (null = anonyme).
+  LoyaltyMember? member;
+  List<RewardTier> rewardTiers = [];
+
+  /// Récompense choisie pour cette commande (seulement si [member] a assez
+  /// de points).
+  RewardTier? selectedReward;
+
+  /// Mise à jour du solde de points — remplaçable dans les tests.
+  Future<int> Function(String uid, int delta) adjustPoints = LoyaltyService.adjustPoints;
+
+  /// Points gagnés par la commande en cours : 1 € = 1 point, comme dans
+  /// l'application, et seulement avec un compte.
+  int get pointsToEarn => member == null ? 0 : cartTotal.floor();
+
   int _counter = 0;
   SharedPreferences? _prefs;
 
   double get cartTotal => cart.fold(0.0, (sum, l) => sum + l.lineTotal);
   int get cartItemCount => cart.fold(0, (sum, l) => sum + l.quantity);
-  bool get hasActiveSession => mode != null || cart.isNotEmpty;
+  bool get hasActiveSession => mode != null || cart.isNotEmpty || member != null;
 
   /// The "Suppléments bowls" items, for the bowl customization dialog.
   List<MenuItem> get bowlSupplements => menuCategories
@@ -53,6 +69,9 @@ class KioskState extends ChangeNotifier {
       // Offline, or Firestore unreachable — keep whatever menu is already
       // loaded rather than taking the kiosk down.
     }
+    try {
+      rewardTiers = await LoyaltyService.fetchRewardTiers();
+    } catch (_) {}
     notifyListeners();
   }
 
@@ -115,6 +134,26 @@ class KioskState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setMember(LoyaltyMember value) {
+    member = value;
+    selectedReward = null;
+    notifyListeners();
+  }
+
+  /// Le client se déconnecte de son compte fidélité (la commande continue).
+  Future<void> logoutMember() async {
+    member = null;
+    selectedReward = null;
+    notifyListeners();
+    await LoyaltyService.signOut();
+  }
+
+  void toggleReward(RewardTier tier) {
+    if (member == null || member!.points < tier.points) return;
+    selectedReward = selectedReward == tier ? null : tier;
+    notifyListeners();
+  }
+
   void setCustomerPhone(String? phone) {
     customerPhone = (phone == null || phone.trim().isEmpty) ? null : phone.trim();
     notifyListeners();
@@ -127,6 +166,11 @@ class KioskState extends ChangeNotifier {
   Future<Ticket> placeOrder({bool paid = false}) async {
     assert(mode != null && cart.isNotEmpty);
     _counter += 1;
+    final customer = member;
+    final earned = pointsToEarn;
+    final reward = (customer != null && selectedReward != null && customer.points >= selectedReward!.points)
+        ? selectedReward
+        : null;
     final ticket = Ticket(
       number: _counter,
       date: DateTime.now(),
@@ -135,14 +179,30 @@ class KioskState extends ChangeNotifier {
       total: cartTotal,
       customerPhone: customerPhone,
       paid: paid,
+      userId: customer?.uid,
+      customerName: customer?.username,
+      pointsEarned: earned,
+      appliedRewardLabel: reward?.label,
     );
     todaysTickets.insert(0, ticket);
     _persist();
     try {
-      await OrdersRepository.submitTicket(ticket);
+      // Hors ligne, Firestore garde l'écriture et l'enverra plus tard : on
+      // n'attend pas indéfiniment le serveur, le client doit avoir son ticket.
+      await OrdersRepository.submitTicket(ticket).timeout(const Duration(seconds: 8));
     } catch (_) {
       // Offline — the ticket still prints locally; it just won't appear in
       // the shared orders collection until connectivity returns.
+    }
+    if (customer != null) {
+      final delta = earned - (reward?.points ?? 0);
+      try {
+        ticket.pointsBalance = delta == 0
+            ? customer.points
+            : await adjustPoints(customer.uid, delta).timeout(const Duration(seconds: 8));
+      } catch (_) {
+        ticket.pointsBalance = customer.points + delta;
+      }
     }
     return ticket;
   }
@@ -154,6 +214,12 @@ class KioskState extends ChangeNotifier {
     mode = null;
     cart = [];
     customerPhone = null;
+    // Le compte fidélité du client ne doit JAMAIS rester ouvert pour le
+    // suivant.
+    final hadMember = member != null;
+    member = null;
+    selectedReward = null;
+    if (hadMember) LoyaltyService.signOut();
     notifyListeners();
   }
 }

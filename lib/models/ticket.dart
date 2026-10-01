@@ -14,6 +14,11 @@ class Ticket {
     required this.total,
     this.customerPhone,
     this.paid = false,
+    this.userId,
+    this.customerName,
+    this.pointsEarned = 0,
+    this.appliedRewardLabel,
+    this.pointsBalance,
   });
 
   /// Sequential, resets every day (see KioskState._nextTicketNumber).
@@ -24,6 +29,19 @@ class Ticket {
   final double total;
   final String? customerPhone;
   final bool paid;
+
+  /// Compte fidélité du client (le même que dans l'application), s'il s'est
+  /// identifié sur la borne — la commande apparaît alors dans ses
+  /// "Mes commandes" sur l'application.
+  final String? userId;
+  final String? customerName;
+  final int pointsEarned;
+
+  /// Récompense fidélité échangée (offerte en plus, pas une remise).
+  final String? appliedRewardLabel;
+
+  /// Solde de points après la commande — affichage du ticket uniquement.
+  int? pointsBalance;
 
   int get itemCount => lines.fold(0, (sum, l) => sum + l.quantity);
 
@@ -43,6 +61,10 @@ class Ticket {
         'total': total,
         'customerPhone': customerPhone,
         'paid': paid,
+        'userId': userId,
+        'customerName': customerName,
+        'pointsEarned': pointsEarned,
+        'appliedRewardLabel': appliedRewardLabel,
       };
 
   factory Ticket.fromJson(Map<String, dynamic> json) => Ticket(
@@ -65,5 +87,9 @@ class Ticket {
         total: (json['total'] as num).toDouble(),
         customerPhone: json['customerPhone'] as String?,
         paid: json['paid'] as bool? ?? false,
+        userId: json['userId'] as String?,
+        customerName: json['customerName'] as String?,
+        pointsEarned: (json['pointsEarned'] as num?)?.toInt() ?? 0,
+        appliedRewardLabel: json['appliedRewardLabel'] as String?,
       );
 }

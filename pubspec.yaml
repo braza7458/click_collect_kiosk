@@ -72,7 +72,8 @@ flutter:
     - assets/images/fond_flou.jpg
     - assets/images/tasty_cheddar.jpg
     - assets/images/tajine.jpg
-    - assets/images/poulet.jpg
+    # Photos des plats (générées avec Gemini), une par produit de la carte.
+    - assets/images/produits/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

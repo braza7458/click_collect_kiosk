@@ -119,6 +119,16 @@ class _TicketScreenState extends State<TicketScreen> {
                             style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
                           ),
                         ),
+                        if (ticket.customerName != null) ...[
+                          const SizedBox(height: 14),
+                          StatusPill(
+                            label: '${ticket.customerName} : +${ticket.pointsEarned} points'
+                                '${ticket.pointsBalance != null ? ' · solde ${ticket.pointsBalance} pts' : ''}'
+                                '${ticket.appliedRewardLabel != null ? ' · ${ticket.appliedRewardLabel} offert' : ''}',
+                            color: AppColors.honey,
+                            icon: Icons.workspace_premium_rounded,
+                          ),
+                        ],
                         if (ticket.customerPhone != null) ...[
                           const SizedBox(height: 12),
                           StatusPill(

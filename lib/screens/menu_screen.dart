@@ -5,6 +5,7 @@ import '../models/cart_line.dart';
 import '../state/kiosk_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/item_options_dialog.dart';
+import '../widgets/loyalty_dialog.dart';
 import '../widgets/menu_icons.dart';
 import '../widgets/ui.dart';
 import 'checkout_screen.dart';
@@ -216,7 +217,7 @@ class _ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final image = menuItemImage(item.name, category: iconId);
+    final image = menuItemImage(item.name);
     return Opacity(
       opacity: item.isOrderable || item.isInfoOnly ? 1 : 0.5,
       child: GlassCard(
@@ -327,7 +328,7 @@ class _CartPanel extends StatelessWidget {
           Expanded(
             child: kioskState.cart.isEmpty
                 ? Center(
-                    child: Padding(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -357,6 +358,8 @@ class _CartPanel extends StatelessWidget {
             ),
             child: Column(
               children: [
+                _MemberStrip(kioskState: kioskState),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(child: Text('Total', style: textTheme.titleLarge)),
@@ -453,6 +456,58 @@ class _StepperButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Icon(icon, size: 20, color: AppColors.cream),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compte fidélité dans le panier : "Me connecter" ou "pseudo · N pts".
+class _MemberStrip extends StatelessWidget {
+  const _MemberStrip({required this.kioskState});
+
+  final KioskState kioskState;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final member = kioskState.member;
+    return Material(
+      color: AppColors.honey.withValues(alpha: 0.12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        side: BorderSide(color: AppColors.honey.withValues(alpha: 0.35)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: member == null ? () => showLoyaltyDialog(context) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              const Icon(Icons.workspace_premium_rounded, color: AppColors.honey),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  member == null
+                      ? 'Compte fidélité : me connecter'
+                      : '${member.username} · ${member.points} pts (+${kioskState.pointsToEarn})',
+                  style: textTheme.labelLarge?.copyWith(color: AppColors.honey),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (member != null)
+                InkWell(
+                  onTap: kioskState.logoutMember,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.logout_rounded, size: 20, color: AppColors.creamMuted),
+                  ),
+                )
+              else
+                const Icon(Icons.chevron_right_rounded, color: AppColors.honey),
+            ],
+          ),
         ),
       ),
     );

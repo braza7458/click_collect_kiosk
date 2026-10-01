@@ -8,6 +8,7 @@ import '../data/kiosk_config.dart';
 import '../services/payment_intent_service.dart';
 import '../state/kiosk_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/loyalty_dialog.dart';
 import '../widgets/ui.dart';
 import 'ticket_screen.dart';
 
@@ -58,7 +59,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
           merchantDisplayName: KioskConfig.restaurantLocationName,
-          applePay: const PaymentSheetApplePay(merchantCountryCode: StripeConfig.merchantCountryCode),
+          // PAS de paramètre applePay : il exige un Apple merchantIdentifier
+          // (jamais configuré, et la borne tourne sur Android) — sa seule
+          // présence faisait échouer initPaymentSheet avant même d'afficher
+          // le formulaire carte. Google Pay suffit sur Android.
+          billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(
+            address: AddressCollectionMode.never,
+          ),
+          // Carte uniquement : pas de bouton "Pay with Link".
+          linkDisplayParams: const LinkDisplayParams(linkDisplay: LinkDisplay.never),
           googlePay: PaymentSheetGooglePay(
             merchantCountryCode: StripeConfig.merchantCountryCode,
             currencyCode: 'EUR',
@@ -78,10 +87,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Le paiement a échoué côté serveur — réessayez.')),
       );
-    } catch (_) {
+    } catch (e, stack) {
+      // L'erreur réelle, dans les logs ET à l'écran : sans elle, impossible
+      // de savoir pourquoi un paiement échoue sur la borne.
+      debugPrint('Paiement borne échoué : $e');
+      debugPrintStack(stackTrace: stack);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Le paiement a échoué — vérifiez la connexion et réessayez.')),
+        SnackBar(content: Text('Le paiement a échoué : $e')),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -145,6 +158,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
           ),
+          if (kioskState.selectedReward != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(
+                children: [
+                  const Icon(Icons.card_giftcard_rounded, color: AppColors.honey, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${kioskState.selectedReward!.label} (fidélité)',
+                      style: textTheme.bodyLarge?.copyWith(color: AppColors.honey),
+                    ),
+                  ),
+                  Text('offert', style: textTheme.bodyLarge?.copyWith(color: AppColors.honey)),
+                ],
+              ),
+            ),
           const SizedBox(height: 10),
           const Divider(),
           const SizedBox(height: 14),
@@ -165,6 +195,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final payment = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const LoyaltyPanel(),
+        const SizedBox(height: 18),
         GlassCard(
           radius: AppRadius.xl,
           padding: const EdgeInsets.all(22),
@@ -208,7 +240,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Carte bancaire, Apple Pay ou Google Pay selon l\'appareil.',
+          'Carte bancaire ou Google Pay.',
           textAlign: TextAlign.center,
           style: textTheme.bodySmall,
         ),

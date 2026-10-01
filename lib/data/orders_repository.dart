@@ -18,8 +18,6 @@ class OrdersRepository {
       'restaurantName': KioskConfig.restaurantLocationName,
       'fulfillmentDetail': null,
       'status': 'confirmed',
-      'pointsEarned': 0,
-      'userId': null,
       'source': 'kiosk',
     };
     return FirebaseFirestore.instance.collection('orders').add(data);

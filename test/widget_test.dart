@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:click_collect_kiosk/data/kiosk_config.dart';
 import 'package:click_collect_kiosk/data/menu_data.dart';
 import 'package:click_collect_kiosk/main.dart';
+import 'package:click_collect_kiosk/services/loyalty_service.dart';
 import 'package:click_collect_kiosk/state/kiosk_state.dart';
 
 /// The menu now lives in Firestore, which isn't reachable from a widget
@@ -78,5 +79,54 @@ void main() {
 
     expect(find.text('Commande enregistrée'), findsOneWidget);
     expect(find.text('1'), findsOneWidget); // first ticket of the day
+  });
+
+  testWidgets('A loyalty member earns points and can redeem a reward on the kiosk', (WidgetTester tester) async {
+    await _useKioskScreen(tester);
+    const dessert = RewardTier(points: 100, label: 'Un dessert offert', iconKey: 'dessert');
+    final state = _testKioskState()
+      ..rewardTiers = const [dessert]
+      ..member = const LoyaltyMember(uid: 'u1', username: 'ChickenFan', points: 120)
+      // Pas de Firestore dans un test : le solde est calculé en mémoire.
+      ..adjustPoints = (uid, delta) async => 120 + delta;
+    await tester.pumpWidget(ClickCollectKioskApp(kioskState: state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text("Touchez l'écran pour commander"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sur place'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ChickenFan · 120 pts'), findsOneWidget);
+
+    await tester.tap(find.text('Le Poulet Rôti'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Ajouter ·'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Valider ma commande'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bonjour ChickenFan !'), findsOneWidget);
+    expect(find.textContaining('+20 avec cette commande'), findsOneWidget);
+    await tester.tap(find.text('Un dessert offert'));
+    await tester.pumpAndSettle();
+    expect(state.selectedReward, dessert);
+
+    await tester.ensureVisible(find.text('Payer en caisse'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Payer en caisse'));
+    await tester.pumpAndSettle();
+
+    final ticket = state.todaysTickets.first;
+    expect(ticket.userId, 'u1');
+    expect(ticket.customerName, 'ChickenFan');
+    expect(ticket.pointsEarned, 20);
+    expect(ticket.appliedRewardLabel, 'Un dessert offert');
+    // 120 + 20 gagnés − 100 pour le dessert.
+    expect(ticket.pointsBalance, 40);
+    expect(find.textContaining('ChickenFan : +20 points'), findsOneWidget);
+    // Le compte du client est fermé dès le ticket terminé.
+    await tester.tap(find.text('Terminer'));
+    await tester.pumpAndSettle();
+    expect(state.member, isNull);
   });
 }

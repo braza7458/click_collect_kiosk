@@ -54,7 +54,7 @@ class _ItemOptionsContentState extends State<_ItemOptionsContent> {
     final textTheme = Theme.of(context).textTheme;
     final item = widget.item;
     final bowlSupplements = KioskStateScope.of(context).bowlSupplements;
-    final image = menuItemImage(item.name, category: widget.category);
+    final image = menuItemImage(item.name);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -62,7 +62,8 @@ class _ItemOptionsContentState extends State<_ItemOptionsContent> {
       children: [
         if (image != null)
           SizedBox(
-            height: 200,
+            // Plus basse sur les petits écrans, pour laisser la place au bouton.
+            height: (MediaQuery.sizeOf(context).height * 0.25).clamp(90.0, 200.0),
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -137,6 +138,7 @@ class _ItemOptionsContentState extends State<_ItemOptionsContent> {
                         _BigOption(
                           title: s.name,
                           subtitle: s.priceLabel,
+                          image: menuItemImage(s.name),
                           selected: _selectedSupplements.contains(s.name),
                           check: true,
                           onTap: () => setState(() {
@@ -192,6 +194,7 @@ class _BigOption extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.check = false,
+    this.image,
   });
 
   final String title;
@@ -199,6 +202,9 @@ class _BigOption extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool check;
+
+  /// Petite photo à gauche (suppléments).
+  final String? image;
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +227,13 @@ class _BigOption extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
+                  if (image != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      child: Image.asset(image!, width: 44, height: 44, fit: BoxFit.cover),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   if (check) ...[
                     Icon(
                       selected ? Icons.check_circle_rounded : Icons.circle_outlined,
