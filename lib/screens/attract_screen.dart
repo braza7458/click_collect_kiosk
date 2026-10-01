@@ -111,7 +111,7 @@ class AttractScreen extends StatelessWidget {
                                 image: 'assets/images/tasty_cheddar.jpg',
                                 tag: 'Nouveau',
                                 title: 'Crousty Cheddar',
-                                price: 'dès 8,50 €',
+                                price: '8,50 €',
                                 angle: -0.03,
                               ),
                             ),
