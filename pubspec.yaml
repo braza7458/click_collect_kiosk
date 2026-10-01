@@ -1,5 +1,5 @@
 name: click_collect_kiosk
-description: "A new Flutter project."
+description: "Borne de commande libre-service — Les Poulets de Mamie."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -41,6 +41,8 @@ dependencies:
   firebase_core: ^4.15.0
   cloud_firestore: ^6.10.0
   firebase_auth: ^6.7.0
+  cloud_functions: ^6.5.0
+  flutter_stripe: ^14.0.0
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +68,11 @@ flutter:
 
   assets:
     - assets/images/logo.jpg
+    - assets/images/fond.jpg
+    - assets/images/fond_flou.jpg
+    - assets/images/tasty_cheddar.jpg
+    - assets/images/tajine.jpg
+    - assets/images/poulet.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -4,26 +4,30 @@ import '../data/menu_data.dart';
 import '../models/cart_line.dart';
 import '../state/kiosk_state.dart';
 import '../theme/app_theme.dart';
+import 'menu_icons.dart';
+import 'ui.dart';
 
-Future<void> showItemOptionsDialog(BuildContext context, MenuItem item) {
+Future<void> showItemOptionsDialog(BuildContext context, MenuItem item, {IconIdentifier? category}) {
   return showDialog(
     context: context,
     builder: (_) => Dialog(
-      backgroundColor: AppColors.surfaceAlt,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
+      clipBehavior: Clip.antiAlias,
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: _ItemOptionsContent(item: item),
+        constraints: const BoxConstraints(maxWidth: 580),
+        child: _ItemOptionsContent(item: item, category: category),
       ),
     ),
   );
 }
 
 class _ItemOptionsContent extends StatefulWidget {
-  const _ItemOptionsContent({required this.item});
+  const _ItemOptionsContent({required this.item, this.category});
 
   final MenuItem item;
+
+  /// Catégorie du plat (pour choisir sa photo) — voir menu_icons.dart.
+  final IconIdentifier? category;
 
   @override
   State<_ItemOptionsContent> createState() => _ItemOptionsContentState();
@@ -34,8 +38,7 @@ class _ItemOptionsContentState extends State<_ItemOptionsContent> {
   final Set<String> _selectedSupplements = {};
   int _quantity = 1;
 
-  double get _basePrice =>
-      widget.item.hasSizes ? widget.item.sizes[_sizeIndex].price : (widget.item.price ?? 0);
+  double get _basePrice => widget.item.hasSizes ? widget.item.sizes[_sizeIndex].price : (widget.item.price ?? 0);
 
   List<CartSupplement> _supplements(List<MenuItem> bowlSupplements) => bowlSupplements
       .where((s) => _selectedSupplements.contains(s.name))
@@ -51,119 +54,200 @@ class _ItemOptionsContentState extends State<_ItemOptionsContent> {
     final textTheme = Theme.of(context).textTheme;
     final item = widget.item;
     final bowlSupplements = KioskStateScope.of(context).bowlSupplements;
+    final image = menuItemImage(item.name, category: widget.category);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (image != null)
+          SizedBox(
+            height: 200,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(image, fit: BoxFit.cover),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, AppColors.surfaceAlt.withValues(alpha: 0.95)],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(28, image != null ? 0 : 24, 16, 0),
+          child: Row(
             children: [
-              Expanded(child: Text(item.name, style: textTheme.headlineSmall)),
+              Expanded(child: Text(item.name, style: textTheme.headlineMedium)),
               IconButton(
                 icon: const Icon(Icons.close_rounded, color: AppColors.cream),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
-          if (item.note != null) ...[
-            const SizedBox(height: 4),
-            Text(item.note!, style: textTheme.bodyMedium),
-          ],
-          const SizedBox(height: 20),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 360),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (item.hasSizes) ...[
-                    Text('TAILLE', style: textTheme.titleSmall?.copyWith(color: AppColors.creamMuted, letterSpacing: 1.0)),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (var i = 0; i < item.sizes.length; i++)
-                          ChoiceChip(
-                            label: Text('${item.sizes[i].label} · ${formatPrice(item.sizes[i].price)}'),
+        ),
+        if (item.note != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 2, 28, 0),
+            child: Text(item.note!, style: textTheme.bodyLarge?.copyWith(color: AppColors.creamMuted)),
+          ),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(28, 18, 28, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (item.hasSizes) ...[
+                  const Eyebrow('Taille'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      for (var i = 0; i < item.sizes.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 12),
+                        Expanded(
+                          child: _BigOption(
+                            title: 'Taille ${item.sizes[i].label}',
+                            subtitle: formatPrice(item.sizes[i].price),
                             selected: _sizeIndex == i,
-                            onSelected: (_) => setState(() => _sizeIndex = i),
-                            selectedColor: AppColors.orange,
-                            backgroundColor: AppColors.charcoalSoft,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
-                            labelStyle: textTheme.labelLarge?.copyWith(
-                              color: _sizeIndex == i ? AppColors.charcoal : AppColors.cream,
-                              letterSpacing: 0,
-                            ),
-                            side: BorderSide(color: _sizeIndex == i ? AppColors.orange : AppColors.divider),
+                            onTap: () => setState(() => _sizeIndex = i),
                           ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                ],
+                if (item.allowsSupplements && bowlSupplements.isNotEmpty) ...[
+                  const Eyebrow('Suppléments'),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 3.2,
+                    children: [
+                      for (final s in bowlSupplements)
+                        _BigOption(
+                          title: s.name,
+                          subtitle: s.priceLabel,
+                          selected: _selectedSupplements.contains(s.name),
+                          check: true,
+                          onTap: () => setState(() {
+                            if (!_selectedSupplements.remove(s.name)) _selectedSupplements.add(s.name);
+                          }),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                ],
+                Row(
+                  children: [
+                    const Expanded(child: Eyebrow('Quantité')),
+                    _QtyButton(icon: Icons.remove_rounded, onTap: _quantity > 1 ? () => setState(() => _quantity--) : null),
+                    SizedBox(width: 56, child: Text('$_quantity', textAlign: TextAlign.center, style: textTheme.headlineMedium)),
+                    _QtyButton(icon: Icons.add_rounded, onTap: () => setState(() => _quantity++)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 12, 28, 24),
+          child: GlowButton(
+            icon: Icons.add_shopping_cart_rounded,
+            label: item.isOrderable ? 'Ajouter · ${formatPrice(_total(bowlSupplements))}' : 'Bientôt disponible',
+            onPressed: !item.isOrderable
+                ? null
+                : () {
+                    KioskStateScope.of(context).addToCart(
+                      CartLine(
+                        itemName: item.name,
+                        sizeLabel: item.hasSizes ? item.sizes[_sizeIndex].label : null,
+                        unitPrice: _basePrice,
+                        supplements: _supplements(bowlSupplements),
+                        quantity: _quantity,
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BigOption extends StatelessWidget {
+  const _BigOption({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+    this.check = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool check;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Pressable(
+      child: AnimatedContainer(
+        duration: AppMotion.medium,
+        curve: AppMotion.curve,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.orange.withValues(alpha: 0.16) : AppColors.glass,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: selected ? AppColors.orange : AppColors.glassBorder, width: selected ? 2 : 1),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  if (check) ...[
+                    Icon(
+                      selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                      color: selected ? AppColors.orange : AppColors.creamMuted,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: check ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: textTheme.titleMedium?.copyWith(color: selected ? AppColors.orange : AppColors.cream),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(subtitle, style: textTheme.bodyMedium),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                  ],
-                  if (item.allowsSupplements) ...[
-                    Text('SUPPLÉMENTS', style: textTheme.titleSmall?.copyWith(color: AppColors.creamMuted, letterSpacing: 1.0)),
-                    ...bowlSupplements.map((s) {
-                      final selected = _selectedSupplements.contains(s.name);
-                      return CheckboxListTile(
-                        value: selected,
-                        onChanged: (v) => setState(() {
-                          if (v ?? false) {
-                            _selectedSupplements.add(s.name);
-                          } else {
-                            _selectedSupplements.remove(s.name);
-                          }
-                        }),
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(s.name, style: textTheme.bodyLarge),
-                        secondary: Text(s.priceLabel, style: textTheme.bodyMedium?.copyWith(color: AppColors.orange)),
-                      );
-                    }),
-                  ],
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('QUANTITÉ', style: textTheme.titleSmall?.copyWith(color: AppColors.creamMuted, letterSpacing: 1.0)),
-              Row(
-                children: [
-                  _QtyButton(icon: Icons.remove, onTap: _quantity > 1 ? () => setState(() => _quantity--) : null),
-                  SizedBox(width: 44, child: Text('$_quantity', textAlign: TextAlign.center, style: textTheme.headlineSmall)),
-                  _QtyButton(icon: Icons.add, onTap: () => setState(() => _quantity++)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: !item.isOrderable
-                  ? null
-                  : () {
-                      KioskStateScope.of(context).addToCart(
-                        CartLine(
-                          itemName: item.name,
-                          sizeLabel: item.hasSizes ? item.sizes[_sizeIndex].label : null,
-                          unitPrice: _basePrice,
-                          supplements: _supplements(bowlSupplements),
-                          quantity: _quantity,
-                        ),
-                      );
-                      Navigator.of(context).pop();
-                    },
-              child: Text(item.isOrderable ? 'Ajouter · ${formatPrice(_total(bowlSupplements))}' : 'Bientôt disponible'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -178,17 +262,15 @@ class _QtyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
-    return Material(
-      color: AppColors.charcoalSoft,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Icon(icon, size: 22, color: enabled ? AppColors.cream : AppColors.creamMuted.withValues(alpha: 0.4)),
-        ),
+    return IconButton(
+      onPressed: onTap,
+      iconSize: 28,
+      style: IconButton.styleFrom(
+        fixedSize: const Size(56, 56),
+        backgroundColor: enabled ? AppColors.glass : Colors.transparent,
+        side: const BorderSide(color: AppColors.glassBorder),
       ),
+      icon: Icon(icon, color: enabled ? AppColors.cream : AppColors.creamMuted.withValues(alpha: 0.4)),
     );
   }
 }

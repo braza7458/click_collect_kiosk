@@ -1,10 +1,10 @@
 import 'cart_line.dart';
 import 'order_mode.dart';
 
-/// A placed kiosk order. There's no kitchen display system or payment
-/// terminal wired in yet, so a ticket is simply the record shown to the
-/// customer and kept in the on-terminal log for staff — payment happens at
-/// the register, referencing the ticket number.
+/// A placed kiosk order — the record shown to the customer and kept in the
+/// on-terminal log for staff. [paid] is true when settled on the spot via
+/// Stripe (card / Apple Pay / Google Pay); false means "pay at the
+/// register", referencing the ticket number.
 class Ticket {
   Ticket({
     required this.number,
@@ -13,6 +13,7 @@ class Ticket {
     required this.lines,
     required this.total,
     this.customerPhone,
+    this.paid = false,
   });
 
   /// Sequential, resets every day (see KioskState._nextTicketNumber).
@@ -22,6 +23,7 @@ class Ticket {
   final List<CartLine> lines;
   final double total;
   final String? customerPhone;
+  final bool paid;
 
   int get itemCount => lines.fold(0, (sum, l) => sum + l.quantity);
 
@@ -40,6 +42,7 @@ class Ticket {
             .toList(),
         'total': total,
         'customerPhone': customerPhone,
+        'paid': paid,
       };
 
   factory Ticket.fromJson(Map<String, dynamic> json) => Ticket(
@@ -61,5 +64,6 @@ class Ticket {
             .toList(),
         total: (json['total'] as num).toDouble(),
         customerPhone: json['customerPhone'] as String?,
+        paid: json['paid'] as bool? ?? false,
       );
 }

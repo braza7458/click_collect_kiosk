@@ -50,3 +50,10 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // MainActivity is a FlutterFragmentActivity (flutter_stripe needs a
+    // FragmentActivity host), which requires AppCompat explicitly rather
+    // than relying on it being pulled in transitively.
+    implementation("androidx.appcompat:appcompat:1.7.0")
+}

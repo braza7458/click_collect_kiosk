@@ -6,6 +6,7 @@ import '../data/kiosk_config.dart';
 import '../models/ticket.dart';
 import '../state/kiosk_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ui.dart';
 
 class TicketScreen extends StatefulWidget {
   const TicketScreen({super.key, required this.ticket});
@@ -45,6 +46,7 @@ class _TicketScreenState extends State<TicketScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final ticket = widget.ticket;
+    final total = KioskConfig.ticketDisplayDuration.inSeconds;
 
     return PopScope(
       canPop: false,
@@ -55,51 +57,100 @@ class _TicketScreenState extends State<TicketScreen> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.green.withValues(alpha: 0.14)),
-                        child: const Icon(Icons.check_rounded, color: AppColors.green, size: 54),
-                      ),
-                      const SizedBox(height: 28),
-                      Text('Commande enregistrée', style: textTheme.headlineMedium),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
-                        decoration: BoxDecoration(
-                          color: AppColors.orange,
-                          borderRadius: BorderRadius.circular(AppRadius.xl),
-                        ),
-                        child: Column(
-                          children: [
-                            Text('VOTRE NUMÉRO', style: textTheme.labelLarge?.copyWith(color: AppColors.charcoal)),
-                            Text(
-                              '${ticket.number}',
-                              style: textTheme.displayLarge?.copyWith(color: AppColors.charcoal, fontSize: 72),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 900),
+                          curve: Curves.elasticOut,
+                          builder: (context, t, child) => Transform.scale(scale: 0.4 + 0.6 * t, child: child),
+                          child: Container(
+                            width: 96,
+                            height: 96,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.green,
+                              boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: 0.5), blurRadius: 40)],
                             ),
+                            child: const Icon(Icons.check_rounded, color: AppColors.charcoal, size: 56),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        FadeSlideIn(index: 1, child: Text('Commande enregistrée', style: textTheme.headlineLarge)),
+                        const SizedBox(height: 28),
+                        FadeSlideIn(
+                          index: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 26),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AppRadius.xxl),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFFFFD98A), AppColors.honey, AppColors.orange],
+                              ),
+                              boxShadow: [BoxShadow(color: AppColors.orange.withValues(alpha: 0.45), blurRadius: 50)],
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'VOTRE NUMÉRO',
+                                  style: textTheme.labelLarge?.copyWith(color: AppColors.charcoal, letterSpacing: 3),
+                                ),
+                                Text(
+                                  '${ticket.number}',
+                                  style: textTheme.displayLarge?.copyWith(color: AppColors.charcoal, fontSize: 120, height: 1.05),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        FadeSlideIn(
+                          index: 3,
+                          child: Text(
+                            ticket.paid
+                                ? 'Merci, votre paiement a bien été reçu !\nPrésentez ce numéro au comptoir.'
+                                : 'Rendez-vous en caisse pour régler votre commande\nen indiquant ce numéro.',
+                            textAlign: TextAlign.center,
+                            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
+                          ),
+                        ),
+                        if (ticket.customerPhone != null) ...[
+                          const SizedBox(height: 12),
+                          StatusPill(
+                            label: 'SMS envoyé au ${ticket.customerPhone} quand ce sera prêt',
+                            color: AppColors.honey,
+                            icon: Icons.sms_rounded,
+                          ),
+                        ],
+                        const SizedBox(height: 36),
+                        SizedBox(
+                          width: 360,
+                          child: GlowButton(label: 'Terminer', onPressed: _returnToStart),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                value: (_secondsLeft / total).clamp(0.0, 1.0),
+                                strokeWidth: 3,
+                                backgroundColor: AppColors.glassBorder,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text('Retour automatique dans $_secondsLeft s', style: textTheme.bodyMedium),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 28),
-                      Text(
-                        'Rendez-vous en caisse pour régler votre commande\nen indiquant ce numéro.',
-                        textAlign: TextAlign.center,
-                        style: textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: 40),
-                      ElevatedButton(
-                        onPressed: _returnToStart,
-                        child: const Text('Terminer'),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Retour automatique dans $_secondsLeft s',
-                        style: textTheme.bodySmall,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

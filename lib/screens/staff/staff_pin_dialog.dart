@@ -54,9 +54,7 @@ class _StaffPinDialogState extends State<_StaffPinDialog> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Dialog(
-      backgroundColor: AppColors.surfaceAlt,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
-      child: SingleChildScrollView(
+            child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 28, 28, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -131,7 +129,7 @@ class _KeypadButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.charcoalSoft,
+      color: AppColors.glass,
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),

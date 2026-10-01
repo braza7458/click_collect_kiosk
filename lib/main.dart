@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
+import 'config/stripe_config.dart';
 import 'data/kiosk_config.dart';
 import 'firebase_options.dart';
 import 'screens/attract_screen.dart';
@@ -10,12 +12,19 @@ import 'state/kiosk_state.dart';
 import 'theme/app_theme.dart';
 import 'widgets/inactivity_guard.dart';
 import 'widgets/staff_exit_gate.dart';
+import 'widgets/ui.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (StripeConfig.isConfigured) {
+    // Paiement sur la borne (carte / Apple Pay / Google Pay), comme le mode
+    // Borne du terminal — même compte Stripe que l'application.
+    Stripe.publishableKey = StripeConfig.publishableKey;
+    await Stripe.instance.applySettings();
+  }
   try {
     // The terminal signs in anonymously (once — Firebase Auth persists the
     // session) so Firestore's `orders` rule, which requires *some*
@@ -70,6 +79,7 @@ class _ClickCollectKioskAppState extends State<ClickCollectKioskApp> {
         title: 'Les Poulets de Mamie — Borne',
         debugShowCheckedModeBanner: false,
         theme: buildKioskTheme(),
+        scrollBehavior: const KioskScrollBehavior(),
         home: _loaded ? const AttractScreen() : const _SplashScreen(),
         builder: (context, child) {
           return StaffExitGate(
@@ -92,7 +102,7 @@ class _SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+      body: Center(child: BrandSeal(size: 140)),
     );
   }
 }

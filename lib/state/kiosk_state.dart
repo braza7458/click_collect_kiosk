@@ -120,10 +120,11 @@ class KioskState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Places the current cart as a ticket. There is no payment terminal wired
-  /// in yet — the confirmation screen is explicit that payment happens at
-  /// the register, referencing the ticket number.
-  Future<Ticket> placeOrder() async {
+  /// Places the current cart as a ticket. [paid] is true when checkout
+  /// collected payment via Stripe (card / Apple Pay / Google Pay) right on
+  /// this screen; false means the customer pays at the register instead —
+  /// see checkout_screen.dart, which offers both.
+  Future<Ticket> placeOrder({bool paid = false}) async {
     assert(mode != null && cart.isNotEmpty);
     _counter += 1;
     final ticket = Ticket(
@@ -133,6 +134,7 @@ class KioskState extends ChangeNotifier {
       lines: List.of(cart),
       total: cartTotal,
       customerPhone: customerPhone,
+      paid: paid,
     );
     todaysTickets.insert(0, ticket);
     _persist();

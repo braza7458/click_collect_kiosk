@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/kiosk_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ui.dart';
 import 'menu_screen.dart';
 
 class OrderTypeScreen extends StatelessWidget {
@@ -24,6 +25,7 @@ class OrderTypeScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
+        top: false,
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             child: ConstrainedBox(
@@ -34,15 +36,28 @@ class OrderTypeScreen extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Comment souhaitez-vous être servi ?', style: textTheme.headlineMedium, textAlign: TextAlign.center),
-                      const SizedBox(height: 40),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      const FadeSlideIn(child: Eyebrow('Étape 1 sur 3')),
+                      const SizedBox(height: 10),
+                      FadeSlideIn(
+                        index: 1,
+                        child: Text(
+                          'Sur place ou à emporter ?',
+                          style: textTheme.headlineLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 28,
+                        runSpacing: 28,
                         children: [
-                          for (final mode in OrderMode.values) ...[
-                            _ModeCard(mode: mode, onTap: () => _choose(context, mode)),
-                            if (mode != OrderMode.values.last) const SizedBox(width: 24),
-                          ],
+                          for (final mode in OrderMode.values)
+                            FadeSlideIn(
+                              index: 2 + mode.index,
+                              offset: 30,
+                              child: _ModeCard(mode: mode, onTap: () => _choose(context, mode)),
+                            ),
                         ],
                       ),
                     ],
@@ -66,33 +81,32 @@ class _ModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.xl),
-      onTap: onTap,
-      child: Container(
-        width: 260,
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-        decoration: BoxDecoration(
-          color: AppColors.charcoalSoft,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          border: Border.all(color: AppColors.divider),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 6)),
-          ],
-        ),
+    return SizedBox(
+      width: 320,
+      child: GlassCard(
+        onTap: onTap,
+        radius: AppRadius.xxl,
+        padding: const EdgeInsets.symmetric(vertical: 44, horizontal: 28),
         child: Column(
           children: [
             Container(
-              width: 88,
-              height: 88,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: AppColors.orange.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Icon(mode.icon, color: AppColors.orange, size: 40),
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFAD5C), AppColors.orange, AppColors.orangeDark],
+                ),
+                boxShadow: [BoxShadow(color: AppColors.orange.withValues(alpha: 0.45), blurRadius: 40)],
+              ),
+              child: Icon(mode.icon, color: AppColors.charcoal, size: 56),
             ),
-            const SizedBox(height: 20),
-            Text(mode.label, style: textTheme.headlineSmall),
-            const SizedBox(height: 6),
-            Text(mode.description, style: textTheme.bodyMedium, textAlign: TextAlign.center),
+            const SizedBox(height: 26),
+            Text(mode.label, style: textTheme.headlineMedium),
+            const SizedBox(height: 8),
+            Text(mode.description, style: textTheme.bodyLarge?.copyWith(color: AppColors.creamMuted), textAlign: TextAlign.center),
           ],
         ),
       ),
