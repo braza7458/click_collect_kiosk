@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
@@ -34,9 +35,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     kioskState.setCustomerPhone(_phoneController.text);
     final ticket = await kioskState.placeOrder(paid: paid);
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => TicketScreen(ticket: ticket)),
-    );
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => TicketScreen(ticket: ticket)));
   }
 
   /// Pays with Stripe's PaymentSheet — card, plus Apple Pay / Google Pay
@@ -44,17 +43,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   /// the register.
   Future<void> _payNow() async {
     if (!StripeConfig.isConfigured) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Paiement par carte indisponible — utilisez « Payer en caisse ».')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Paiement par carte indisponible — utilisez « Payer en caisse ».')));
       return;
     }
     setState(() => _submitting = true);
     try {
       final kioskState = KioskStateScope.of(context);
-      final clientSecret = await fetchPaymentIntentClientSecret(
-        amountCents: (kioskState.cartTotal * 100).round(),
-      );
+      final clientSecret = await fetchPaymentIntentClientSecret(amountCents: (kioskState.cartTotal * 100).round());
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
@@ -84,18 +81,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Le paiement a échoué côté serveur — réessayez.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message ?? 'Le paiement a échoué côté serveur — réessayez.')));
     } catch (e, stack) {
       // L'erreur réelle, dans les logs ET à l'écran : sans elle, impossible
       // de savoir pourquoi un paiement échoue sur la borne.
       debugPrint('Paiement borne échoué : $e');
       debugPrintStack(stackTrace: stack);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Le paiement a échoué : $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Le paiement a échoué : $e')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -182,10 +176,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(child: Text('Total', style: textTheme.headlineSmall)),
-              Text(
-                formatPrice(kioskState.cartTotal),
-                style: textTheme.displaySmall?.copyWith(color: AppColors.orange),
-              ),
+              Text(formatPrice(kioskState.cartTotal), style: textTheme.displaySmall?.copyWith(color: AppColors.orange)),
             ],
           ),
         ],
@@ -232,18 +223,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ),
         const SizedBox(height: 22),
-        GlowButton(
-          icon: Icons.contactless_rounded,
-          busy: _submitting,
-          label: 'Payer ${formatPrice(kioskState.cartTotal)}',
-          onPressed: _payNow,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Carte bancaire ou Google Pay.',
-          textAlign: TextAlign.center,
-          style: textTheme.bodySmall,
-        ),
+        // Version web (test en ligne) : pas de paiement carte natif, on règle en caisse.
+        if (!kIsWeb) ...[
+          GlowButton(
+            icon: Icons.contactless_rounded,
+            busy: _submitting,
+            label: 'Payer ${formatPrice(kioskState.cartTotal)}',
+            onPressed: _payNow,
+          ),
+          const SizedBox(height: 10),
+          Text('Carte bancaire ou Google Pay.', textAlign: TextAlign.center, style: textTheme.bodySmall),
+        ],
         const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: _submitting ? null : () => _finish(paid: false),

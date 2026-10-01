@@ -1,11 +1,11 @@
 {
-    "name": "click_collect_kiosk",
-    "short_name": "click_collect_kiosk",
+    "name": "Les Poulets de Mamie — Borne",
+    "short_name": "Borne Mamie",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#120D09",
+    "theme_color": "#F28C38",
+    "description": "Borne de commande — Les Poulets de Mamie.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

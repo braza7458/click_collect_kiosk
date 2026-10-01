@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"les-poulets-de-mamie","appId":"1:524117961573:android:47a70f44fd6af0a9d88f8c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"les-poulets-de-mamie","configurations":{"android":"1:524117961573:android:47a70f44fd6af0a9d88f8c","ios":"1:524117961573:ios:51cac8cc5d83bb7cd88f8c","macos":"1:524117961573:ios:51cac8cc5d83bb7cd88f8c","web":"1:524117961573:web:78bd7eaffa0a8b7fd88f8c","windows":"1:524117961573:web:5bc0f75d7cfefd91d88f8c"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "les-poulets-de-mamie",
+          "appId": "1:524117961573:android:47a70f44fd6af0a9d88f8c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "les-poulets-de-mamie",
+          "configurations": {
+            "android": "1:524117961573:android:47a70f44fd6af0a9d88f8c",
+            "ios": "1:524117961573:ios:51cac8cc5d83bb7cd88f8c",
+            "macos": "1:524117961573:ios:51cac8cc5d83bb7cd88f8c",
+            "web": "1:524117961573:web:78bd7eaffa0a8b7fd88f8c",
+            "windows": "1:524117961573:web:5bc0f75d7cfefd91d88f8c"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "site": "poulets-de-mamie-borne",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
